@@ -41,25 +41,18 @@ export default function RegisterPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Email/Password Sign Up
   async function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     setIsLoading(true);
     setError("");
 
     try {
-      // 1. Create User
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password,
       );
-
-      // 2. Update Profile Name
-      await updateProfile(userCredential.user, {
-        displayName: name,
-      });
-
+      await updateProfile(userCredential.user, { displayName: name });
       router.push("/dashboard");
     } catch (err: any) {
       console.error(err);
@@ -75,16 +68,21 @@ export default function RegisterPage() {
     }
   }
 
-  // Google Sign Up
   async function handleGoogleSignUp() {
     setIsGoogleLoading(true);
     setError("");
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-      // Note: Google automatically provides the displayName
       router.push("/dashboard");
     } catch (err: any) {
+      // FIX: Ignore if user simply closed the popup
+      if (err.code === "auth/popup-closed-by-user") {
+        console.log("User closed the popup");
+        setIsGoogleLoading(false);
+        return;
+      }
+
       console.error("Google Sign Up Error:", err);
       setError("Could not sign up with Google. Try again.");
     } finally {
@@ -127,7 +125,6 @@ export default function RegisterPage() {
             </Alert>
           )}
 
-          {/* Google Button */}
           <Button
             variant="outline"
             className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-white font-bold"

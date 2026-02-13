@@ -71,7 +71,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-xl">
-      <div className="container flex h-16 items-center px-4">
+      <div className="container mx-auto flex h-16 items-center px-4">
         {/* 1. LEFT: LOGO (Width fixed to balance layout) */}
         <div className="flex w-[200px] items-center gap-4">
           {/* Mobile Trigger */}

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { UnityLogo } from "@/components/UnityLogo";
 
 export function SiteFooter() {
@@ -13,19 +14,19 @@ export function SiteFooter() {
         </div>
 
         <div className="text-zinc-600 text-sm font-medium">
-          © 2026 SquadUp Inc.
+          © 2026 SquadUp Inc. Toronto, Canada.
         </div>
 
         <div className="flex gap-6 text-zinc-500 text-sm font-bold">
-          <a href="#" className="hover:text-lime-400 transition">
+          <Link href="/terms" className="hover:text-lime-400 transition">
             Terms
-          </a>
-          <a href="#" className="hover:text-lime-400 transition">
+          </Link>
+          <Link href="/privacy" className="hover:text-lime-400 transition">
             Privacy
-          </a>
-          <a href="#" className="hover:text-lime-400 transition">
+          </Link>
+          <Link href="/support" className="hover:text-lime-400 transition">
             Support
-          </a>
+          </Link>
         </div>
       </div>
     </footer>

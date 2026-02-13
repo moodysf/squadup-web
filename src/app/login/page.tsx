@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-// 1. Import Google Auth functions
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -28,7 +27,7 @@ import {
   ArrowLeft,
   AlertCircle,
   Chrome,
-} from "lucide-react"; // Added Chrome icon for Google
+} from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
@@ -39,7 +38,6 @@ export default function LoginPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Email/Password Login
   async function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     setIsLoading(true);
@@ -52,8 +50,6 @@ export default function LoginPage() {
       console.error("Login Error:", err);
       if (err.code === "auth/invalid-credential") {
         setError("Invalid email or password.");
-      } else if (err.code === "auth/too-many-requests") {
-        setError("Access temporarily blocked due to many failed attempts.");
       } else {
         setError("Login failed. Check your connection.");
       }
@@ -62,7 +58,6 @@ export default function LoginPage() {
     }
   }
 
-  // Google Login
   async function handleGoogleLogin() {
     setIsGoogleLoading(true);
     setError("");
@@ -71,6 +66,13 @@ export default function LoginPage() {
       await signInWithPopup(auth, provider);
       router.push("/dashboard");
     } catch (err: any) {
+      // FIX: Ignore if user simply closed the popup
+      if (err.code === "auth/popup-closed-by-user") {
+        console.log("User closed the popup");
+        setIsGoogleLoading(false);
+        return;
+      }
+
       console.error("Google Login Error:", err);
       setError("Could not sign in with Google. Try again.");
     } finally {
@@ -113,7 +115,6 @@ export default function LoginPage() {
             </Alert>
           )}
 
-          {/* Google Button */}
           <Button
             variant="outline"
             className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-white font-bold"
