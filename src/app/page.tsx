@@ -30,9 +30,9 @@ export default function MarketingPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 pt-4">
-          <Link href="/register">
-            <Button className="h-12 px-8 text-lg bg-white text-black hover:bg-zinc-200 rounded-full font-bold">
-              Get Started
+          <Link href="https://apps.apple.com" target="_blank">
+            <Button className="bg-white text-black hover:bg-zinc-200">
+              Download for iOS
             </Button>
           </Link>
           <Button

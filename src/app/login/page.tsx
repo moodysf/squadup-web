@@ -3,8 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signInWithEmailAndPassword } from "firebase/auth"; // <--- Import this
-import { auth } from "@/lib/firebase"; // <--- Import this
+// 1. Import Google Auth functions
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +21,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Lock, Mail, Loader2, ArrowLeft, AlertCircle } from "lucide-react";
+import {
+  Lock,
+  Mail,
+  Loader2,
+  ArrowLeft,
+  AlertCircle,
+  Chrome,
+} from "lucide-react"; // Added Chrome icon for Google
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
@@ -24,27 +36,45 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Email/Password Login
   async function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     setIsLoading(true);
     setError("");
 
     try {
-      // THE REAL LOGIN LOGIC
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/dashboard");
     } catch (err: any) {
-      // Handle errors (wrong password, user not found)
-      console.error(err);
+      console.error("Login Error:", err);
       if (err.code === "auth/invalid-credential") {
         setError("Invalid email or password.");
+      } else if (err.code === "auth/too-many-requests") {
+        setError("Access temporarily blocked due to many failed attempts.");
       } else {
-        setError("Something went wrong. Please try again.");
+        setError("Login failed. Check your connection.");
       }
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  // Google Login
+  async function handleGoogleLogin() {
+    setIsGoogleLoading(true);
+    setError("");
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      router.push("/dashboard");
+    } catch (err: any) {
+      console.error("Google Login Error:", err);
+      setError("Could not sign in with Google. Try again.");
+    } finally {
+      setIsGoogleLoading(false);
     }
   }
 
@@ -72,18 +102,44 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
 
-        <form onSubmit={onSubmit}>
-          <CardContent className="space-y-4">
-            {error && (
-              <Alert
-                variant="destructive"
-                className="bg-red-900/20 border-red-900 text-red-200"
-              >
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+        <CardContent className="space-y-4">
+          {error && (
+            <Alert
+              variant="destructive"
+              className="bg-red-900/20 border-red-900 text-red-200"
+            >
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
+          {/* Google Button */}
+          <Button
+            variant="outline"
+            className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-white font-bold"
+            onClick={handleGoogleLogin}
+            disabled={isLoading || isGoogleLoading}
+          >
+            {isGoogleLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Chrome className="mr-2 h-4 w-4" />
+            )}
+            Continue with Google
+          </Button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-zinc-800" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-zinc-900 px-2 text-zinc-500">
+                Or continue with email
+              </span>
+            </div>
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-zinc-300">
                 Email
@@ -119,28 +175,28 @@ export default function LoginPage() {
                 />
               </div>
             </div>
-          </CardContent>
 
-          <CardFooter className="flex flex-col gap-4">
             <Button
-              className="w-full bg-lime-400 text-black font-bold hover:bg-lime-500 transition-all"
-              disabled={isLoading}
+              className="w-full bg-lime-400 text-black font-bold hover:bg-lime-500 transition-all mt-4"
+              disabled={isLoading || isGoogleLoading}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Sign In
+              Sign In with Email
             </Button>
+          </form>
+        </CardContent>
 
-            <div className="text-center text-sm text-zinc-500">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/register"
-                className="text-white hover:text-lime-400 font-medium underline-offset-4 hover:underline"
-              >
-                Sign up
-              </Link>
-            </div>
-          </CardFooter>
-        </form>
+        <CardFooter className="justify-center">
+          <div className="text-center text-sm text-zinc-500">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/register"
+              className="text-white hover:text-lime-400 font-medium underline-offset-4 hover:underline"
+            >
+              Sign up
+            </Link>
+          </div>
+        </CardFooter>
       </Card>
     </div>
   );

@@ -1,50 +1,42 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Trophy, Calendar, Users, DollarSign, ArrowRight } from "lucide-react";
+import {
+  Trophy,
+  Calendar,
+  Users,
+  DollarSign,
+  ArrowRight,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-// Mock Data for Internal Dashboard
-const ACTIVE_LEAGUES = [
-  {
-    id: "l1",
-    name: "Premier Metro League",
-    sport: "Soccer",
-    season: "Winter 2026",
-    format: "7v7",
-    prize: "$5,000",
-    fee: "$1,200/team",
-    spots: 2,
-    status: "Open",
-  },
-  {
-    id: "l2",
-    name: "Downtown Hoops",
-    sport: "Basketball",
-    season: "Q1 Split",
-    format: "5v5",
-    prize: "$2,500",
-    fee: "$800/team",
-    spots: 4,
-    status: "Open",
-  },
-  {
-    id: "l3",
-    name: "Corporate Volleyball",
-    sport: "Volleyball",
-    season: "Spring 2026",
-    format: "6v6",
-    prize: "Trophy + Merch",
-    fee: "$600/team",
-    spots: 0,
-    status: "Full",
-  },
-];
+import { collection, onSnapshot, query, where } from "firebase/firestore"; // <--- Firestore imports
+import { db } from "@/lib/firebase";
 
 export default function DashboardLeaguesPage() {
+  const [leagues, setLeagues] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // FETCH LEAGUES REAL-TIME
+  useEffect(() => {
+    const q = query(collection(db, "leagues")); // You can add where("status", "==", "open") here
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const leaguesData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setLeagues(leaguesData);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   return (
     <div className="max-w-6xl mx-auto p-8 text-white space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-end gap-4">
@@ -81,11 +73,21 @@ export default function DashboardLeaguesPage() {
         </TabsList>
 
         <TabsContent value="open" className="mt-6">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {ACTIVE_LEAGUES.map((league) => (
-              <LeagueCard key={league.id} league={league} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-lime-400" />
+            </div>
+          ) : leagues.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {leagues.map((league) => (
+                <LeagueCard key={league.id} league={league} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 border border-dashed border-zinc-800 rounded-xl text-zinc-500">
+              No leagues currently open for registration.
+            </div>
+          )}
         </TabsContent>
         <TabsContent value="upcoming">
           <div className="text-center py-20 border border-dashed border-zinc-800 rounded-xl text-zinc-500">
@@ -102,7 +104,6 @@ function LeagueCard({ league }: { league: any }) {
 
   return (
     <Card className="bg-zinc-900 border-zinc-800 overflow-hidden group hover:border-yellow-400/50 transition-all flex flex-col h-full">
-      {/* Card Header Image Area */}
       <div className="h-32 bg-gradient-to-br from-zinc-800 to-zinc-900 relative p-6">
         <div className="absolute top-4 right-4">
           <Badge
@@ -112,7 +113,7 @@ function LeagueCard({ league }: { league: any }) {
                 : "bg-green-500 text-black font-bold"
             }
           >
-            {isFull ? "REGISTRATION CLOSED" : `${league.spots} SPOTS LEFT`}
+            {isFull ? "CLOSED" : `${league.spots || 0} SPOTS LEFT`}
           </Badge>
         </div>
         <Trophy className="w-12 h-12 text-zinc-700 absolute bottom-4 right-4 opacity-20 group-hover:opacity-40 transition-opacity rotate-12" />

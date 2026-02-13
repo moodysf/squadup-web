@@ -3,7 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"; // <--- Real Auth
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  signInWithPopup,
+  GoogleAuthProvider,
+} from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +28,7 @@ import {
   Loader2,
   ArrowLeft,
   AlertCircle,
+  Chrome,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -32,27 +38,28 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Email/Password Sign Up
   async function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     setIsLoading(true);
     setError("");
 
     try {
-      // 1. Create User in Firebase
+      // 1. Create User
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password,
       );
 
-      // 2. Update their Display Name (Profile)
+      // 2. Update Profile Name
       await updateProfile(userCredential.user, {
         displayName: name,
       });
 
-      // 3. Go to Dashboard
       router.push("/dashboard");
     } catch (err: any) {
       console.error(err);
@@ -68,9 +75,26 @@ export default function RegisterPage() {
     }
   }
 
+  // Google Sign Up
+  async function handleGoogleSignUp() {
+    setIsGoogleLoading(true);
+    setError("");
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      // Note: Google automatically provides the displayName
+      router.push("/dashboard");
+    } catch (err: any) {
+      console.error("Google Sign Up Error:", err);
+      setError("Could not sign up with Google. Try again.");
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4 relative overflow-hidden">
-      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-violet-600/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-lime-400/10 blur-[120px] rounded-full pointer-events-none" />
 
       <Link
         href="/"
@@ -81,7 +105,7 @@ export default function RegisterPage() {
 
       <Card className="w-full max-w-md bg-zinc-900/80 border-zinc-800 backdrop-blur-xl relative z-10 shadow-2xl">
         <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-4 w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-violet-400">
+          <div className="mx-auto mb-4 w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-lime-400">
             <User className="w-6 h-6" />
           </div>
           <CardTitle className="text-2xl font-black italic text-white tracking-tighter">
@@ -92,18 +116,44 @@ export default function RegisterPage() {
           </CardDescription>
         </CardHeader>
 
-        <form onSubmit={onSubmit}>
-          <CardContent className="space-y-4">
-            {error && (
-              <Alert
-                variant="destructive"
-                className="bg-red-900/20 border-red-900 text-red-200"
-              >
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+        <CardContent className="space-y-4">
+          {error && (
+            <Alert
+              variant="destructive"
+              className="bg-red-900/20 border-red-900 text-red-200"
+            >
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
+          {/* Google Button */}
+          <Button
+            variant="outline"
+            className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-white font-bold"
+            onClick={handleGoogleSignUp}
+            disabled={isLoading || isGoogleLoading}
+          >
+            {isGoogleLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Chrome className="mr-2 h-4 w-4" />
+            )}
+            Sign up with Google
+          </Button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-zinc-800" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-zinc-900 px-2 text-zinc-500">
+                Or sign up with email
+              </span>
+            </div>
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name" className="text-zinc-300">
                 Full Name
@@ -115,7 +165,7 @@ export default function RegisterPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Mahmoud Youssef"
-                  className="pl-10 bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-violet-400/50"
+                  className="pl-10 bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-lime-400/50"
                   required
                 />
               </div>
@@ -132,7 +182,7 @@ export default function RegisterPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="player@squadup.cc"
-                  className="pl-10 bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-violet-400/50"
+                  className="pl-10 bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-lime-400/50"
                   required
                 />
               </div>
@@ -148,33 +198,33 @@ export default function RegisterPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 bg-zinc-950 border-zinc-800 text-white focus-visible:ring-violet-400/50"
+                  className="pl-10 bg-zinc-950 border-zinc-800 text-white focus-visible:ring-lime-400/50"
                   required
                 />
               </div>
             </div>
-          </CardContent>
 
-          <CardFooter className="flex flex-col gap-4">
             <Button
-              className="w-full bg-violet-600 text-white font-bold hover:bg-violet-700 transition-all"
-              disabled={isLoading}
+              className="w-full bg-lime-400 text-black font-bold hover:bg-lime-500 transition-all mt-4"
+              disabled={isLoading || isGoogleLoading}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Account
             </Button>
+          </form>
+        </CardContent>
 
-            <div className="text-center text-sm text-zinc-500">
-              Already have an account?{" "}
-              <Link
-                href="/login"
-                className="text-white hover:text-lime-400 font-medium underline-offset-4 hover:underline"
-              >
-                Sign in
-              </Link>
-            </div>
-          </CardFooter>
-        </form>
+        <CardFooter className="justify-center">
+          <div className="text-center text-sm text-zinc-500">
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              className="text-white hover:text-lime-400 font-medium underline-offset-4 hover:underline"
+            >
+              Sign in
+            </Link>
+          </div>
+        </CardFooter>
       </Card>
     </div>
   );
