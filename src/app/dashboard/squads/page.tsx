@@ -1,35 +1,88 @@
 // src/app/dashboard/squads/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Shield, Plus, Users, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-const MY_SQUADS = [
-  {
-    id: "squad_1",
-    name: "Zulu FC",
-    sport: "Soccer",
-    role: "Captain",
-    members: 12,
-    wins: 8,
-    losses: 2,
-  },
-  {
-    id: "squad_2",
-    name: "Dunkin' Demons",
-    sport: "Basketball",
-    role: "Member",
-    members: 5,
-    wins: 3,
-    losses: 5,
-  },
-];
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  onSnapshot,
+} from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function SquadsPage() {
+  const [squadName, setSquadName] = useState("");
+  const [sport, setSport] = useState("");
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [squads, setSquads] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+
+  // Listen for User Auth
+  useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubAuth();
+  }, []);
+
+  // Listen for Real Squads
+  useEffect(() => {
+    if (!user) return;
+
+    // Query: Find squads where I am a member
+    const q = query(
+      collection(db, "squads"),
+      where("members", "array-contains", user.uid),
+    );
+
+    const unsubDocs = onSnapshot(q, (snapshot) => {
+      const liveSquads = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setSquads(liveSquads);
+    });
+
+    return () => unsubDocs();
+  }, [user]);
+
+  // The "Write" Function
+  const handleCreate = async () => {
+    if (!squadName || !sport || !user) return;
+    setLoading(true);
+
+    try {
+      await addDoc(collection(db, "squads"), {
+        name: squadName,
+        sport: sport,
+        captainId: user.uid,
+        captainName: user.displayName || "Unknown Captain",
+        members: [user.uid], // You start as the only member
+        wins: 0,
+        losses: 0,
+        createdAt: new Date(),
+      });
+
+      setOpen(false);
+      setSquadName("");
+      // No need to alert; the list will auto-update thanks to onSnapshot!
+    } catch (error) {
+      console.error("Error creating squad:", error);
+      alert("Failed to create squad");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-8 text-white space-y-8">
       <div className="flex justify-between items-center">
