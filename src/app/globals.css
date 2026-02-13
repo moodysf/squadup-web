@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0d0d14; /* Your App Background */
+  --foreground: #ffffff;
+  --neon: #d0ff00; /* Your App Tint */
+  --card: #1a1a24; /* Secondary Background */
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The "Shard" visual element */
+.shard-box {
+  background-color: var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% 85%,
+    95% 100%,
+    0 100%
+  ); /* Slight angle cut */
+  padding: 2rem;
+  border-radius: 12px;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  margin-bottom: 1rem;
+}
+h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--neon);
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+p {
+  color: #a0a0a0;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+a {
+  color: var(--neon);
+  text-decoration: none;
+}
