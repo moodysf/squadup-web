@@ -4,6 +4,7 @@ import { auth, db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import Link from "next/link";
 
 // Define the shape of your Squad data (matching Swift)
 interface Squad {
