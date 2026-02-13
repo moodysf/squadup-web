@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signInWithEmailAndPassword } from "firebase/auth"; // <--- Import this
+import { auth } from "@/lib/firebase"; // <--- Import this
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,33 +16,42 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Lock, Mail, Loader2, ArrowLeft } from "lucide-react";
+import { Lock, Mail, Loader2, ArrowLeft, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     setIsLoading(true);
+    setError("");
 
-    // ---------------------------------------------------------
-    // TODO: Replace this timeout with real Firebase Auth logic
-    // await signInWithEmailAndPassword(auth, email, password)
-    // ---------------------------------------------------------
-
-    setTimeout(() => {
+    try {
+      // THE REAL LOGIN LOGIC
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push("/dashboard");
+    } catch (err: any) {
+      // Handle errors (wrong password, user not found)
+      console.error(err);
+      if (err.code === "auth/invalid-credential") {
+        setError("Invalid email or password.");
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
+    } finally {
       setIsLoading(false);
-      router.push("/dashboard"); // Redirect to the app
-    }, 1000);
+    }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4 relative overflow-hidden">
-      {/* Background Decor (Optional Glow) */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-lime-400/10 blur-[120px] rounded-full pointer-events-none" />
 
-      {/* Back Button */}
       <Link
         href="/"
         className="absolute top-8 left-8 text-zinc-400 hover:text-white flex items-center gap-2 transition-colors"
@@ -63,6 +74,16 @@ export default function LoginPage() {
 
         <form onSubmit={onSubmit}>
           <CardContent className="space-y-4">
+            {error && (
+              <Alert
+                variant="destructive"
+                className="bg-red-900/20 border-red-900 text-red-200"
+              >
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email" className="text-zinc-300">
                 Email
@@ -71,13 +92,12 @@ export default function LoginPage() {
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
                 <Input
                   id="email"
-                  placeholder="captain@squadup.cc"
                   type="email"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  autoCorrect="off"
-                  disabled={isLoading}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="captain@squadup.cc"
                   className="pl-10 bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-lime-400/50"
+                  required
                 />
               </div>
             </div>
@@ -86,20 +106,16 @@ export default function LoginPage() {
                 <Label htmlFor="password" className="text-zinc-300">
                   Password
                 </Label>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-lime-400 hover:text-lime-300 hover:underline"
-                >
-                  Forgot password?
-                </Link>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
                 <Input
                   id="password"
                   type="password"
-                  disabled={isLoading}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 bg-zinc-950 border-zinc-800 text-white focus-visible:ring-lime-400/50"
+                  required
                 />
               </div>
             </div>

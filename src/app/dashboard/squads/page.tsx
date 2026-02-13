@@ -32,6 +32,7 @@ import {
   query,
   where,
   onSnapshot,
+  getDocs,
 } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -80,27 +81,51 @@ export default function SquadsPage() {
   }, [user]);
 
   // 3. Create Squad Function
+  const [error, setError] = useState(""); // Add this to your state list
+
   const handleCreate = async () => {
     if (!squadName || !sport || !user) return;
     setCreating(true);
+    setError(""); // Reset error state
 
     try {
+      // 1. Query Firestore for existing names (case-insensitive)
+      const q = query(
+        collection(db, "squads"),
+        where("nameLowercase", "==", squadName.toLowerCase()),
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      // 2. Alert if duplicate found
+      if (!querySnapshot.empty) {
+        setError("That squad name is already taken. Choose a unique name!");
+        setCreating(false);
+        return;
+      }
+
+      // 3. Generate 6-char code (Mimicking iOS logic)
+      const generateInviteCode = () =>
+        Math.random().toString(36).substring(2, 8).toUpperCase();
+
+      // 4. Proceed with Creation (Swift Struct Aligned)
       await addDoc(collection(db, "squads"), {
         name: squadName,
+        nameLowercase: squadName.toLowerCase(),
+        ownerId: user.uid, // Matches your Swift 'ownerId'
+        members: [user.uid],
         sport: sport,
-        captainId: user.uid,
-        captainName: user.displayName || "Unknown Captain",
-        members: [user.uid], // You start as the only member
         wins: 0,
         losses: 0,
+        inviteCode: generateInviteCode(),
         createdAt: new Date(),
       });
 
       setOpen(false);
       setSquadName("");
-    } catch (error) {
-      console.error("Error creating squad:", error);
-      alert("Failed to save squad. Check console.");
+    } catch (err) {
+      console.error("Error creating squad:", err);
+      setError("Something went wrong. Please try again.");
     } finally {
       setCreating(false);
     }
@@ -131,16 +156,20 @@ export default function SquadsPage() {
               <DialogTitle className="text-xl font-bold italic">
                 Establish a New Squad
               </DialogTitle>
-              <DialogDescription className="text-zinc-400">
-                You will be assigned as the Captain.
-              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {/* NEW ERROR ALERT */}
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm font-bold">
+                  {error}
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Squad Name</Label>
                 <Input
-                  placeholder="e.g. Mighty Ducks"
-                  className="bg-zinc-950 border-zinc-800 focus-visible:ring-violet-500"
+                  placeholder="e.g. Zulu FC"
+                  className="bg-zinc-900 border-zinc-800 focus-visible:ring-lime-400/50"
                   value={squadName}
                   onChange={(e) => setSquadName(e.target.value)}
                 />
@@ -152,10 +181,14 @@ export default function SquadsPage() {
                     <SelectValue placeholder="Select sport" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
-                    <SelectItem value="soccer">Soccer</SelectItem>
-                    <SelectItem value="basketball">Basketball</SelectItem>
-                    <SelectItem value="volleyball">Volleyball</SelectItem>
-                    <SelectItem value="cricket">Cricket</SelectItem>
+                    {/* These values now match your Swift enum cases exactly */}
+                    <SelectItem value="Soccer">Soccer</SelectItem>
+                    <SelectItem value="Basketball">Basketball</SelectItem>
+                    <SelectItem value="Hockey">Hockey</SelectItem>
+                    <SelectItem value="Tennis">Tennis</SelectItem>
+                    <SelectItem value="Volleyball">Volleyball</SelectItem>
+                    <SelectItem value="Padel">Padel</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

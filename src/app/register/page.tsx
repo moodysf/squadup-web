@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"; // <--- Real Auth
+import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,26 +16,60 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { User, Mail, Lock, Loader2, ArrowLeft } from "lucide-react";
+import {
+  User,
+  Mail,
+  Lock,
+  Loader2,
+  ArrowLeft,
+  AlertCircle,
+} from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     setIsLoading(true);
+    setError("");
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // 1. Create User in Firebase
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+
+      // 2. Update their Display Name (Profile)
+      await updateProfile(userCredential.user, {
+        displayName: name,
+      });
+
+      // 3. Go to Dashboard
       router.push("/dashboard");
-    }, 1500);
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === "auth/email-already-in-use") {
+        setError("This email is already registered.");
+      } else if (err.code === "auth/weak-password") {
+        setError("Password should be at least 6 characters.");
+      } else {
+        setError("Failed to create account. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4 relative overflow-hidden">
-      {/* Background Decor */}
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-violet-600/10 blur-[120px] rounded-full pointer-events-none" />
 
       <Link
@@ -58,6 +94,16 @@ export default function RegisterPage() {
 
         <form onSubmit={onSubmit}>
           <CardContent className="space-y-4">
+            {error && (
+              <Alert
+                variant="destructive"
+                className="bg-red-900/20 border-red-900 text-red-200"
+              >
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="name" className="text-zinc-300">
                 Full Name
@@ -66,9 +112,11 @@ export default function RegisterPage() {
                 <User className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
                 <Input
                   id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder="Mahmoud Youssef"
                   className="pl-10 bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-violet-400/50"
-                  disabled={isLoading}
+                  required
                 />
               </div>
             </div>
@@ -81,9 +129,11 @@ export default function RegisterPage() {
                 <Input
                   id="email"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="player@squadup.cc"
                   className="pl-10 bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-violet-400/50"
-                  disabled={isLoading}
+                  required
                 />
               </div>
             </div>
@@ -96,8 +146,10 @@ export default function RegisterPage() {
                 <Input
                   id="password"
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 bg-zinc-950 border-zinc-800 text-white focus-visible:ring-violet-400/50"
-                  disabled={isLoading}
+                  required
                 />
               </div>
             </div>
@@ -116,7 +168,7 @@ export default function RegisterPage() {
               Already have an account?{" "}
               <Link
                 href="/login"
-                className="text-white hover:text-violet-400 font-medium underline-offset-4 hover:underline"
+                className="text-white hover:text-lime-400 font-medium underline-offset-4 hover:underline"
               >
                 Sign in
               </Link>

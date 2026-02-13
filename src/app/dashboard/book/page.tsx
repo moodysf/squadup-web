@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { MapPin, Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation"; // <--- Import Router
+import { collection, getDocs, addDoc } from "firebase/firestore"; // <--- Import addDoc
+import { db, auth } from "@/lib/firebase"; // <--- Import Auth
+import { MapPin, Loader2, Calendar as CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -15,20 +16,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Calendar } from "@/components/ui/calendar"; // You might need to install this component
+import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
-
-// Quick install if missing: npx shadcn@latest add calendar dialog popover
 
 interface Venue {
   id: string;
   name: string;
   address: string;
   sport: string;
-  pricePerHour?: number;
+  pricePerHour: number;
 }
 
 export default function BookVenuePage() {
+  const router = useRouter();
   const [venues, setVenues] = useState<Venue[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     new Date(),
@@ -49,14 +49,30 @@ export default function BookVenuePage() {
     fetchVenues();
   }, []);
 
-  const handleBook = () => {
+  // --- THE REAL BOOKING LOGIC ---
+  const handleBook = async () => {
+    if (!selectedVenue || !selectedDate || !auth.currentUser) return;
     setIsBooking(true);
-    // TODO: Write to Firestore 'bookings' collection
-    setTimeout(() => {
+
+    try {
+      await addDoc(collection(db, "bookings"), {
+        venueId: selectedVenue.id,
+        venueName: selectedVenue.name,
+        venueAddress: selectedVenue.address,
+        date: selectedDate, // Firestore handles JS Date objects
+        userId: auth.currentUser.uid,
+        status: "confirmed",
+        createdAt: new Date(),
+      });
+
+      // Redirect to dashboard to see the new booking
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Booking failed:", error);
+      alert("Booking failed. Please try again.");
+    } finally {
       setIsBooking(false);
-      setSelectedVenue(null); // Close modal
-      alert("Booking Confirmed! (Mock)");
-    }, 1500);
+    }
   };
 
   return (
@@ -97,7 +113,6 @@ export default function BookVenuePage() {
                   </Button>
                 </DialogTrigger>
 
-                {/* MODAL CONTENT */}
                 <DialogContent className="bg-zinc-900 border-zinc-800 text-white sm:max-w-[425px]">
                   <DialogHeader>
                     <DialogTitle>Confirm Booking</DialogTitle>

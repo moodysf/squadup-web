@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Oswald } from "next/font/google";
 import "./globals.css";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header"; // <--- 1. IMPORT THIS
+import { SiteFooter } from "@/components/site-footer"; // <--- Optional: Add Footer too
 
-const inter = Inter({ subsets: ["latin"] });
+// Configure Oswald
+const oswald = Oswald({
+  subsets: ["latin"],
+  variable: "--font-oswald",
+  weight: ["200", "300", "400", "500", "600", "700"],
+});
 
 export const metadata: Metadata = {
-  title: "SquadUp",
-  description: "Manage your squad like a pro.",
+  title: "SQUADUP",
+  description: "Find your squad. Rule the court.",
 };
 
 export default function RootLayout({
@@ -17,13 +22,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      {/* Ensure full height and dark background */}
+    <html lang="en" className="dark">
       <body
-        className={`${inter.className} min-h-screen flex flex-col bg-zinc-950 text-white antialiased`}
+        className={`${oswald.variable} antialiased bg-background text-foreground flex flex-col min-h-screen`}
+        style={{ fontFamily: "var(--font-oswald), sans-serif" }}
       >
+        {/* 2. RENDER THE HEADER HERE */}
         <SiteHeader />
+
         <main className="flex-1">{children}</main>
+
+        {/* 3. OPTIONAL: RENDER FOOTER HERE */}
         <SiteFooter />
       </body>
     </html>
