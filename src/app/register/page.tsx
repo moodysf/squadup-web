@@ -1,22 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
-import { Lock, Mail, Loader2, ArrowLeft } from "lucide-react";
+import { User, Mail, Lock, Loader2, ArrowLeft } from "lucide-react";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -24,23 +24,18 @@ export default function LoginPage() {
     event.preventDefault();
     setIsLoading(true);
 
-    // ---------------------------------------------------------
-    // TODO: Replace this timeout with real Firebase Auth logic
-    // await signInWithEmailAndPassword(auth, email, password)
-    // ---------------------------------------------------------
-
+    // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
-      router.push("/dashboard"); // Redirect to the app
-    }, 1000);
+      router.push("/dashboard");
+    }, 1500);
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4 relative overflow-hidden">
-      {/* Background Decor (Optional Glow) */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-lime-400/10 blur-[120px] rounded-full pointer-events-none" />
+      {/* Background Decor */}
+      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-violet-600/10 blur-[120px] rounded-full pointer-events-none" />
 
-      {/* Back Button */}
       <Link
         href="/"
         className="absolute top-8 left-8 text-zinc-400 hover:text-white flex items-center gap-2 transition-colors"
@@ -50,19 +45,33 @@ export default function LoginPage() {
 
       <Card className="w-full max-w-md bg-zinc-900/80 border-zinc-800 backdrop-blur-xl relative z-10 shadow-2xl">
         <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-4 w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-lime-400">
-            <Lock className="w-6 h-6" />
+          <div className="mx-auto mb-4 w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-violet-400">
+            <User className="w-6 h-6" />
           </div>
           <CardTitle className="text-2xl font-black italic text-white tracking-tighter">
-            WELCOME BACK
+            JOIN THE SQUAD
           </CardTitle>
           <CardDescription className="text-zinc-400">
-            Enter your credentials to access the locker room.
+            Create your player profile to get started.
           </CardDescription>
         </CardHeader>
 
         <form onSubmit={onSubmit}>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-zinc-300">
+                Full Name
+              </Label>
+              <div className="relative">
+                <User className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                <Input
+                  id="name"
+                  placeholder="Mahmoud Youssef"
+                  className="pl-10 bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-violet-400/50"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email" className="text-zinc-300">
                 Email
@@ -71,35 +80,24 @@ export default function LoginPage() {
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
                 <Input
                   id="email"
-                  placeholder="captain@squadup.cc"
                   type="email"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  autoCorrect="off"
+                  placeholder="player@squadup.cc"
+                  className="pl-10 bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-violet-400/50"
                   disabled={isLoading}
-                  className="pl-10 bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-lime-400/50"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-zinc-300">
-                  Password
-                </Label>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-lime-400 hover:text-lime-300 hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
+              <Label htmlFor="password" className="text-zinc-300">
+                Password
+              </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
                 <Input
                   id="password"
                   type="password"
+                  className="pl-10 bg-zinc-950 border-zinc-800 text-white focus-visible:ring-violet-400/50"
                   disabled={isLoading}
-                  className="pl-10 bg-zinc-950 border-zinc-800 text-white focus-visible:ring-lime-400/50"
                 />
               </div>
             </div>
@@ -107,20 +105,20 @@ export default function LoginPage() {
 
           <CardFooter className="flex flex-col gap-4">
             <Button
-              className="w-full bg-lime-400 text-black font-bold hover:bg-lime-500 transition-all"
+              className="w-full bg-violet-600 text-white font-bold hover:bg-violet-700 transition-all"
               disabled={isLoading}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Sign In
+              Create Account
             </Button>
 
             <div className="text-center text-sm text-zinc-500">
-              Don&apos;t have an account?{" "}
+              Already have an account?{" "}
               <Link
-                href="/register"
-                className="text-white hover:text-lime-400 font-medium underline-offset-4 hover:underline"
+                href="/login"
+                className="text-white hover:text-violet-400 font-medium underline-offset-4 hover:underline"
               >
-                Sign up
+                Sign in
               </Link>
             </div>
           </CardFooter>

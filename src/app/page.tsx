@@ -1,64 +1,92 @@
-import Image from "next/image";
+"use client";
+
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Trophy, Shield, Zap } from "lucide-react";
 
-export default function Home() {
+export default function MarketingPage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-[#0D0D14] text-white p-4 relative overflow-hidden">
-      {/* Background Shards - Kept these, they add depth */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#D0FF00] opacity-5 blur-3xl rounded-full pointer-events-none transform translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#1A1A24] opacity-40 blur-2xl rounded-full pointer-events-none transform -translate-x-1/3 translate-y-1/3" />
+    // Removed "min-h-screen" because the Layout handles height now
+    <div className="flex flex-col bg-zinc-950 text-white selection:bg-lime-400 selection:text-black">
+      {/* --- DELETED NAVBAR SECTION FROM HERE --- */}
 
-      <div className="z-10 flex flex-col items-center text-center max-w-2xl">
-        {/* THE REAL LOGO */}
-        <div className="relative w-40 h-40 md:w-56 md:h-56 mb-6 shadow-[0_0_40px_rgba(208,255,0,0.3)] rounded-3xl overflow-hidden border border-white/10 bg-black/50">
-          <Image
-            src="/logo.png"
-            alt="SquadUp Logo"
-            fill
-            className="object-contain p-4"
-            priority
-          />
+      {/* Hero Section */}
+      <main className="flex-1 flex flex-col items-center justify-center text-center px-4 space-y-8 mt-12 mb-24 pt-10">
+        <div className="inline-flex items-center rounded-full border border-zinc-800 bg-zinc-900/50 px-3 py-1 text-sm text-zinc-400 backdrop-blur">
+          <span className="flex h-2 w-2 rounded-full bg-lime-400 mr-2 animate-pulse"></span>
+          Season 2026 is Live
         </div>
 
-        {/* Text Below Logo */}
-        <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-2 italic text-white">
-          SQUAD<span className="text-[#D0FF00]">UP</span>
+        <h1 className="text-5xl md:text-7xl font-black tracking-tight max-w-4xl">
+          MANAGE YOUR SQUAD <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-400 to-green-600">
+            LIKE A PRO.
+          </span>
         </h1>
 
-        <p className="text-lg md:text-xl text-gray-400 mb-10 font-light tracking-wide max-w-lg">
-          The #1 Roster Manager for Toronto's recreational leagues.
+        <p className="text-xl text-zinc-400 max-w-2xl mx-auto">
+          The all-in-one platform for pickup games, league management, and venue
+          booking. Stop using spreadsheets. Start winning.
         </p>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col w-full sm:flex-row gap-4 justify-center items-center">
-          <button className="w-full sm:w-auto bg-[#D0FF00] text-black font-bold text-lg px-10 py-4 skew-x-[-10deg] hover:bg-white transition-all shadow-[0_0_20px_rgba(208,255,0,0.4)]">
-            <span className="block skew-x-[10deg]">DOWNLOAD APP</span>
-          </button>
-
-          <Link
-            href="/login"
-            className="w-full sm:w-auto border border-gray-600 text-gray-300 font-bold text-lg px-10 py-4 skew-x-[-10deg] hover:border-[#D0FF00] hover:text-[#D0FF00] transition-colors"
-          >
-            <span className="block skew-x-[10deg]">WEB LOGIN</span>
+        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+          <Link href="/register">
+            <Button className="h-12 px-8 text-lg bg-white text-black hover:bg-zinc-200 rounded-full font-bold">
+              Get Started
+            </Button>
           </Link>
+          <Button
+            variant="outline"
+            className="h-12 px-8 text-lg border-zinc-800 text-white hover:bg-zinc-900 rounded-full"
+          >
+            Download for iOS
+          </Button>
         </div>
-      </div>
 
-      {/* Footer */}
-      <div className="absolute bottom-8 flex gap-8 text-xs text-gray-500 uppercase tracking-widest">
-        <Link
-          href="/privacy"
-          className="hover:text-[#D0FF00] transition-colors"
+        {/* Feature Grid */}
+        <div
+          id="features"
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24 max-w-6xl w-full text-left"
         >
-          Privacy
-        </Link>
-        <Link
-          href="/support"
-          className="hover:text-[#D0FF00] transition-colors"
-        >
-          Support
-        </Link>
+          <FeatureCard
+            icon={Zap}
+            title="Instant Booking"
+            desc="Find open pitches and courts near you. Book in seconds."
+          />
+          <FeatureCard
+            icon={Shield}
+            title="Squad Management"
+            desc="Rosters, payments, and stats. Keep your team in sync."
+          />
+          <FeatureCard
+            icon={Trophy}
+            title="League Play"
+            desc="Join competitive leagues, track standings, and climb the leaderboard."
+          />
+        </div>
+      </main>
+
+      {/* --- DELETED FOOTER SECTION (It's now global in layout.tsx) --- */}
+    </div>
+  );
+}
+
+function FeatureCard({
+  icon: Icon,
+  title,
+  desc,
+}: {
+  icon: any;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 hover:border-lime-400/50 transition duration-300 group">
+      <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center mb-4 text-lime-400 group-hover:scale-110 transition">
+        <Icon className="w-6 h-6" />
       </div>
-    </main>
+      <h3 className="text-xl font-bold mb-2 text-white">{title}</h3>
+      <p className="text-zinc-400 leading-relaxed">{desc}</p>
+    </div>
   );
 }

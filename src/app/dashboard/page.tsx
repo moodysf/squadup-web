@@ -1,125 +1,69 @@
-"use client";
-import { useEffect, useState } from "react";
-import { auth, db } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
-import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
+import { UpcomingGames } from "@/components/upcoming-games";
+import { MapPin, Trophy, Shield, Link } from "lucide-react";
+import { Activity } from "react";
 
-// Define the shape of your Squad data (matching Swift)
-interface Squad {
-  id: string;
-  name: string; // e.g., "Zulu FC"
-  sport: string; // e.g., "Soccer"
-  captainId: string;
-  playerIds: string[];
+export default function Home() {
+  return (
+    <main className="min-h-screen bg-zinc-950 p-8">
+      {/* Container to center content */}
+      <div className="max-w-5xl mx-auto space-y-8">
+        {/* Header */}
+        <header className="flex justify-between items-center border-b border-zinc-800 pb-6">
+          <h1 className="text-4xl font-black italic text-white tracking-tighter">
+            SQUAD<span className="text-green-400">UP</span>
+          </h1>
+          <div className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white font-bold">
+            MY
+          </div>
+        </header>
+        {/* Quick Actions Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <QuickAction
+            href="/dashboard/book"
+            icon={MapPin}
+            label="Book Venue"
+            color="text-green-400"
+          />
+          <QuickAction
+            href="/dashboard/pickup"
+            icon={Activity}
+            label="Find Pickup"
+            color="text-blue-400"
+          />
+          <QuickAction
+            href="/dashboard/leagues"
+            icon={Trophy}
+            label="Join League"
+            color="text-yellow-400"
+          />
+          <QuickAction
+            href="/dashboard/squads"
+            icon={Shield}
+            label="Create Squad"
+            color="text-violet-400"
+          />
+        </div>
+        {/* Your New Dynamic Component */}
+        <UpcomingGames />
+      </div>
+    </main>
+  );
 }
 
-export default function DashboardPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [squads, setSquads] = useState<Squad[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // 1. Listen for Auth State
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!currentUser) {
-        router.push("/login"); // Kick out if not logged in
-        return;
-      }
-      setUser(currentUser);
-
-      // 2. Fetch Squads where user is Captain OR Player
-      try {
-        const squadsRef = collection(db, "squads");
-
-        // Query 1: Squads I captain
-        const memberQuery = query(
-          squadsRef,
-          where("members", "array-contains", currentUser.uid),
-        );
-        const ownerQuery = query(
-          squadsRef,
-          where("ownerId", "==", currentUser.uid),
-        );
-        const [memberSnap, ownerSnap] = await Promise.all([
-          getDocs(memberQuery),
-          getDocs(ownerQuery),
-        ]);
-
-        const fetchedSquads: Squad[] = [];
-        const squadMap = new Map();
-
-        [...memberSnap.docs, ...ownerSnap.docs].forEach((doc) => {
-          squadMap.set(doc.id, { id: doc.id, ...doc.data() });
-        });
-
-        setSquads(Array.from(squadMap.values()));
-      } catch (error) {
-        console.error("Error fetching squads:", error);
-      } finally {
-        setLoading(false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, [router]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0D0D14] flex items-center justify-center text-[#D0FF00] font-mono animate-pulse">
-        LOADING ROSTER...
-      </div>
-    );
-  }
-
+function QuickAction({ href, icon: Icon, label, color }: any) {
   return (
-    <main className="min-h-screen bg-[#0D0D14] p-4 md:p-8">
-      {/* Top Bar */}
-      <div className="flex justify-between items-center mb-12">
-        <h1 className="text-2xl font-black text-white italic">
-          MY <span className="text-[#D0FF00]">SQUADS</span>
-        </h1>
-        <button
-          onClick={() => auth.signOut()}
-          className="text-xs text-gray-500 hover:text-white uppercase tracking-widest border border-gray-700 px-4 py-2 rounded"
-        >
-          Sign Out
-        </button>
-      </div>
-
-      {/* Content Area */}
-      {squads.length === 0 ? (
-        // EMPTY STATE
-        <div className="text-center text-gray-500 mt-20">
-          <p className="mb-4">No active squads found.</p>
-          <div className="inline-block border border-dashed border-gray-700 p-8 rounded-xl">
-            <span className="text-sm">
-              Create a squad in the iOS App to see it here.
-            </span>
+    <Link href={href}>
+      <Card className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 transition-all cursor-pointer">
+        <CardContent className="flex flex-col items-center justify-center p-6 gap-3">
+          <div
+            className={`p-3 rounded-full bg-zinc-950 border border-zinc-800 ${color}`}
+          >
+            <Icon className="w-6 h-6" />
           </div>
-        </div>
-      ) : (
-        // SQUAD LIST
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {squads.map((squad) => (
-            <Link
-              href={`/dashboard/${squad.id}`}
-              key={squad.id}
-              className="block group"
-            >
-              <div className="bg-[#1A1A24] border border-white/10 p-6 rounded-xl relative overflow-hidden group-hover:border-[#D0FF00] transition-colors cursor-pointer">
-                {/* ... keep the inner card content (h2, badges, etc) the same ... */}
-                <h2 className="text-3xl font-black text-white italic mb-1 uppercase group-hover:text-[#D0FF00] transition-colors">
-                  {squad.name}
-                </h2>
-                {/* ... rest of your existing card code ... */}
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </main>
+          <span className="font-bold text-sm text-zinc-300">{label}</span>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
