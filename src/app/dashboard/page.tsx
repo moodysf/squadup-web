@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation"; // <--- Import Params
+import { useSearchParams } from "next/navigation";
 import {
   Users,
   Trophy,
@@ -17,7 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // <--- Import Alert
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
@@ -25,16 +25,16 @@ import {
   where,
   getDocs,
   Timestamp,
-} from "firebase/firestore";
+  collectionGroup,
+} from "firebase/firestore"; // <--- Added collectionGroup
 import { auth, db } from "@/lib/firebase";
 
-// --- 1. THE MAIN CONTENT COMPONENT ---
+// --- 1. THE LOGIC COMPONENT ---
 function DashboardContent() {
   const [user, setUser] = useState<any>(null);
   const [upcomingGame, setUpcomingGame] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // URL Params for Payment Status
   const searchParams = useSearchParams();
   const paymentSuccess = searchParams.get("success");
   const paymentCanceled = searchParams.get("canceled");
@@ -46,7 +46,16 @@ function DashboardContent() {
         try {
           const now = new Date();
 
-          // Fetch Bookings & Pickups (Parallel)
+          // 1. Get User's Squads (to filter matches)
+          // For MVP, we assume you are the captain. Later check 'roster' array.
+          const squadsQ = query(
+            collection(db, "squads"),
+            where("captainId", "==", currentUser.uid),
+          );
+          const squadsSnap = await getDocs(squadsQ);
+          const mySquadIds = squadsSnap.docs.map((doc) => doc.id);
+
+          // 2. Prepare Queries
           const bookingsQ = query(
             collection(db, "bookings"),
             where("userId", "==", currentUser.uid),
@@ -59,13 +68,22 @@ function DashboardContent() {
             where("date", ">=", now),
           );
 
-          const [bookingsSnap, pickupSnap] = await Promise.all([
+          // 3. Fetch Matches (Collection Group finds 'matches' inside ANY league)
+          // Note: This might require a Firestore Index. Check console if it fails.
+          const matchesQ = query(
+            collectionGroup(db, "matches"),
+            where("date", ">=", now),
+          );
+
+          const [bookingsSnap, pickupSnap, matchesSnap] = await Promise.all([
             getDocs(bookingsQ),
             getDocs(pickupQ),
+            getDocs(matchesQ),
           ]);
 
           let allEvents: any[] = [];
 
+          // Process Bookings
           bookingsSnap.forEach((doc) => {
             const d = doc.data();
             const dateObj =
@@ -80,6 +98,7 @@ function DashboardContent() {
             });
           });
 
+          // Process Pickups
           pickupSnap.forEach((doc) => {
             const d = doc.data();
             const dateObj =
@@ -94,6 +113,30 @@ function DashboardContent() {
             });
           });
 
+          // Process League Matches
+          matchesSnap.forEach((doc) => {
+            const d = doc.data();
+            // Only show matches if my squad is playing
+            if (
+              mySquadIds.includes(d.homeTeamId) ||
+              mySquadIds.includes(d.awayTeamId)
+            ) {
+              const dateObj =
+                d.date instanceof Timestamp
+                  ? d.date.toDate()
+                  : new Date(d.date);
+              allEvents.push({
+                id: doc.id,
+                type: "LEAGUE",
+                title: `${d.homeTeamName} vs ${d.awayTeamName}`,
+                sub: d.venueName || "League Match",
+                date: dateObj,
+                status: "Scheduled",
+              });
+            }
+          });
+
+          // Sort by Date (Soonest first)
           allEvents.sort((a, b) => a.date.getTime() - b.date.getTime());
 
           if (allEvents.length > 0) {
@@ -110,14 +153,12 @@ function DashboardContent() {
 
   return (
     <div className="max-w-6xl mx-auto p-8 text-white space-y-8">
-      {/* PAYMENT ALERTS */}
+      {/* ALERTS */}
       {paymentSuccess && (
         <Alert className="bg-green-900/20 border-green-900 text-green-400 mb-6">
           <CheckCircle2 className="h-4 w-4" />
           <AlertTitle>Success!</AlertTitle>
-          <AlertDescription>
-            Your booking has been confirmed. Get ready to play.
-          </AlertDescription>
+          <AlertDescription>Your request has been received.</AlertDescription>
         </Alert>
       )}
       {paymentCanceled && (
@@ -130,7 +171,7 @@ function DashboardContent() {
         </Alert>
       )}
 
-      {/* Header */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-4xl font-black italic tracking-tighter">
@@ -147,7 +188,7 @@ function DashboardContent() {
         </Link>
       </div>
 
-      {/* Grid Links */}
+      {/* CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link href="/dashboard/squads">
           <Card className="bg-zinc-900 border-zinc-800 hover:border-violet-500/50 cursor-pointer h-full group">
@@ -162,7 +203,7 @@ function DashboardContent() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/dashboard/leagues">
+        <Link href="/dashboard/play">
           <Card className="bg-zinc-900 border-zinc-800 hover:border-yellow-400/50 cursor-pointer h-full group">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-zinc-400 group-hover:text-white">
@@ -179,18 +220,18 @@ function DashboardContent() {
           <Card className="bg-zinc-900 border-zinc-800 hover:border-lime-400/50 cursor-pointer h-full group">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-zinc-400 group-hover:text-white">
-                GAME CENTER
+                BOOK A PITCH
               </CardTitle>
               <MapPin className="h-4 w-4 text-lime-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">Find Games</div>
+              <div className="text-2xl font-bold text-white">Find Courts</div>
             </CardContent>
           </Card>
         </Link>
       </div>
 
-      {/* Upcoming Action */}
+      {/* UPCOMING ACTION */}
       <div className="space-y-4">
         <h2 className="text-xl font-bold italic flex items-center gap-2">
           <Calendar className="w-5 h-5 text-zinc-500" /> UPCOMING ACTION
@@ -213,9 +254,10 @@ function DashboardContent() {
               </div>
               <div>
                 <div className="flex gap-2 mb-1">
+                  {/* DYNAMIC BADGE COLOR */}
                   <Badge
                     variant="outline"
-                    className="bg-lime-400/10 text-lime-400 border-lime-400/20"
+                    className={`border-opacity-20 ${upcomingGame.type === "LEAGUE" ? "bg-yellow-400/10 text-yellow-400 border-yellow-400" : upcomingGame.type === "PICKUP" ? "bg-blue-400/10 text-blue-400 border-blue-400" : "bg-lime-400/10 text-lime-400 border-lime-400"}`}
                   >
                     {upcomingGame.type}
                   </Badge>
@@ -237,9 +279,6 @@ function DashboardContent() {
                 </div>
               </div>
             </div>
-            <Button className="bg-zinc-800 hover:bg-zinc-700 text-white font-bold">
-              View Ticket
-            </Button>
           </div>
         ) : (
           <div className="border border-dashed border-zinc-800 rounded-xl p-12 text-center bg-zinc-900/30">
@@ -259,7 +298,7 @@ function DashboardContent() {
   );
 }
 
-// --- 2. THE PAGE WRAPPER (Prevents the Crash) ---
+// --- 2. THE WRAPPER (Prevents the Crash) ---
 export default function DashboardPage() {
   return (
     <Suspense

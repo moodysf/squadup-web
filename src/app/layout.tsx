@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Oswald } from "next/font/google";
 import "./globals.css";
-import { SiteHeader } from "@/components/site-header"; // <--- 1. IMPORT THIS
-import { SiteFooter } from "@/components/site-footer"; // <--- Optional: Add Footer too
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 
 // Configure Oswald
 const oswald = Oswald({

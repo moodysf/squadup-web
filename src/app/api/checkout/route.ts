@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16" as any, // Use latest API version
+  apiVersion: "2023-10-16" as any,
 });
 
 export async function POST(request: Request) {
@@ -12,57 +12,51 @@ export async function POST(request: Request) {
 
     let price = 0;
     let title = "";
-    let metadata = {};
 
-    // 1. VENUE BOOKING
+    // Metadata is critical here: It tells YOU what to book for them.
+    let metadata: any = {
+      status: "pending_approval", // <--- Key change
+      userId,
+      userEmail,
+      type,
+    };
+
     if (type === "booking") {
-      price = data.venuePrice * 100; // Cents
-      title = `Booking: ${data.venueName} (${data.date} @ ${data.time})`;
-      metadata = {
-        type: "booking",
-        userId,
-        venueId: data.venueId,
-        date: data.date,
-        time: data.time,
-      };
-    }
-    // 2. PICKUP SESSION
-    else if (type === "pickup") {
+      price = data.venuePrice * 100;
+      title = `Request: ${data.venueName}`;
+      metadata.venueId = data.venueId;
+      metadata.venueName = data.venueName; // Save name so you don't have to look it up
+      metadata.date = data.date;
+      metadata.time = data.time;
+    } else if (type === "pickup") {
       price = data.price * 100;
-      title = `Pickup: ${data.sport} at ${data.venue}`;
-      metadata = {
-        type: "pickup",
-        userId,
-        sessionId: data.sessionId,
-      };
-    }
-    // 3. LEAGUE REGISTRATION
-    else if (type === "league") {
+      title = `Join Request: ${data.sport}`;
+      metadata.sessionId = data.sessionId;
+      metadata.sport = data.sport;
+    } else if (type === "league") {
       price = data.fee * 100;
-      title = `League Fee: ${data.leagueName}`;
-      metadata = {
-        type: "league",
-        userId,
-        leagueId: data.leagueId,
-        squadId: data.squadId || "individual",
-      };
+      title = `League Application: ${data.leagueName}`;
+      metadata.leagueId = data.leagueId;
     }
 
-    // Create Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
         {
           price_data: {
             currency: "cad",
-            product_data: { name: title },
+            product_data: {
+              name: title,
+              description:
+                "Concierge Booking: We will confirm this slot manually.",
+            },
             unit_amount: price,
           },
           quantity: 1,
         },
       ],
       mode: "payment",
-      success_url: `${baseUrl}/dashboard?success=true`,
+      success_url: `${baseUrl}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}&type=${type}`, // Pass type back
       cancel_url: `${baseUrl}/dashboard?canceled=true`,
       metadata: metadata,
       customer_email: userEmail,

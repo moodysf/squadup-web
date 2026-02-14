@@ -49,7 +49,7 @@ import { SportType } from "@/lib/types";
 // --- MAIN PAGE COMPONENT ---
 export default function PlayPage() {
   return (
-    <div className="max-w-6xl mx-auto p-8 text-white space-y-8">
+    <div className="max-w-6xl mx-auto p-4 md:p-8 text-white space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-end gap-4">
         <div>
           <h1 className="text-4xl font-black italic tracking-tighter mb-2">
@@ -62,24 +62,36 @@ export default function PlayPage() {
       </div>
 
       <Tabs defaultValue="pickup" className="w-full">
-        <TabsList className="bg-zinc-900 border border-zinc-800 h-auto p-1 grid grid-cols-3 w-full md:w-[600px]">
+        {/* STYLE UPDATE: Transparent background, bottom border, responsive text */}
+        <TabsList className="w-full justify-start bg-transparent border-b border-zinc-800 p-0 h-auto rounded-none flex gap-4 md:gap-8 overflow-x-auto">
           <TabsTrigger
             value="pickup"
-            className="font-bold py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+            className="rounded-none border-b-2 border-transparent px-2 py-4 data-[state=active]:border-blue-500 data-[state=active]:bg-transparent data-[state=active]:text-blue-500 text-zinc-400 hover:text-white transition-all flex items-center gap-2"
           >
-            <Zap className="w-4 h-4 mr-2" /> DROP-INS
+            <Zap className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="text-xs md:text-sm font-bold tracking-wide">
+              DROP-INS
+            </span>
           </TabsTrigger>
+
           <TabsTrigger
             value="venues"
-            className="font-bold py-3 data-[state=active]:bg-lime-400 data-[state=active]:text-black"
+            className="rounded-none border-b-2 border-transparent px-2 py-4 data-[state=active]:border-lime-400 data-[state=active]:bg-transparent data-[state=active]:text-lime-400 text-zinc-400 hover:text-white transition-all flex items-center gap-2"
           >
-            <MapPin className="w-4 h-4 mr-2" /> BOOK VENUE
+            <MapPin className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="text-xs md:text-sm font-bold tracking-wide">
+              BOOK VENUE
+            </span>
           </TabsTrigger>
+
           <TabsTrigger
             value="leagues"
-            className="font-bold py-3 data-[state=active]:bg-yellow-400 data-[state=active]:text-black"
+            className="rounded-none border-b-2 border-transparent px-2 py-4 data-[state=active]:border-yellow-400 data-[state=active]:bg-transparent data-[state=active]:text-yellow-400 text-zinc-400 hover:text-white transition-all flex items-center gap-2"
           >
-            <Trophy className="w-4 h-4 mr-2" /> LEAGUES
+            <Trophy className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="text-xs md:text-sm font-bold tracking-wide">
+              LEAGUES
+            </span>
           </TabsTrigger>
         </TabsList>
 
@@ -233,16 +245,22 @@ function PickupCard({ session }: { session: any }) {
         <Button
           onClick={handleJoin}
           disabled={isFull || joining || hasJoined}
-          className={`w-full font-bold ${hasJoined ? "bg-green-500 text-black" : isFull ? "bg-zinc-800 text-zinc-500" : "bg-blue-600 text-white hover:bg-blue-700"}`}
+          className={`w-full font-bold ${
+            hasJoined
+              ? "bg-green-500 text-black"
+              : isFull
+                ? "bg-zinc-800 text-zinc-500"
+                : "bg-blue-600 text-white hover:bg-blue-700"
+          }`}
         >
           {joining ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : hasJoined ? (
-            "Joined"
+            "Request Sent" // <--- Updated Text (if they joined locally)
           ) : isFull ? (
             "Full"
           ) : (
-            "Join Game"
+            "Request to Join" // <--- Updated Text
           )}
         </Button>
       </CardFooter>
@@ -270,12 +288,10 @@ function VenueList() {
 }
 
 function VenueCard({ venue }: { venue: any }) {
-  // 1. FIX: Start with 'undefined' to prevent Server/Client mismatch
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [time, setTime] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
 
-  // 2. FIX: Set the default date only AFTER the component mounts (Client-side)
   useEffect(() => {
     setDate(new Date());
   }, []);
@@ -346,8 +362,8 @@ function VenueCard({ venue }: { venue: any }) {
               Book Pitch
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-950 border-zinc-800 text-white sm:max-w-[600px] p-0 overflow-hidden">
-            <DialogHeader className="p-6 pb-2">
+          <DialogContent className="bg-zinc-950 border-zinc-800 text-white sm:max-w-[700px] w-full p-0 overflow-hidden max-h-[90vh] flex flex-col">
+            <DialogHeader className="p-6 pb-2 shrink-0">
               <DialogTitle className="text-2xl italic font-black">
                 BOOKING:{" "}
                 <span className="text-lime-400">
@@ -359,9 +375,10 @@ function VenueCard({ venue }: { venue: any }) {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="flex flex-col md:flex-row border-t border-zinc-800">
-              {/* LEFT: CALENDAR */}
-              <div className="p-4 border-b md:border-b-0 md:border-r border-zinc-800 flex justify-center bg-zinc-900/30">
+            {/* Scrollable Content Area */}
+            <div className="flex flex-col md:flex-row border-t border-zinc-800 overflow-y-auto">
+              {/* LEFT: CALENDAR (Centered) */}
+              <div className="p-4 border-b md:border-b-0 md:border-r border-zinc-800 flex justify-center bg-zinc-900/30 shrink-0">
                 <CalendarComponent
                   mode="single"
                   selected={date}
@@ -374,17 +391,17 @@ function VenueCard({ venue }: { venue: any }) {
               </div>
 
               {/* RIGHT: TIME SLOTS */}
-              <div className="flex-1 p-4 bg-zinc-900/50 max-h-[350px] overflow-y-auto">
-                <div className="mb-2 text-xs font-bold text-zinc-500 uppercase tracking-wider">
+              <div className="flex-1 p-4 bg-zinc-900/50">
+                <div className="mb-3 text-xs font-bold text-zinc-500 uppercase tracking-wider sticky top-0 bg-zinc-900/50 backdrop-blur pb-2">
                   Available Slots {date ? `(${date.toLocaleDateString()})` : ""}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {timeSlots.map((slot) => (
                     <Button
                       key={slot.value}
                       variant={time === slot.value ? "default" : "outline"}
                       onClick={() => setTime(slot.value)}
-                      className={`justify-start font-mono text-sm h-10 ${
+                      className={`justify-start font-mono text-xs sm:text-sm h-9 ${
                         time === slot.value
                           ? "bg-lime-400 text-black hover:bg-lime-500 border-lime-400"
                           : "border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"
@@ -398,7 +415,7 @@ function VenueCard({ venue }: { venue: any }) {
               </div>
             </div>
 
-            <DialogFooter className="p-4 bg-zinc-900 border-t border-zinc-800 flex-col sm:flex-row gap-3 items-center">
+            <DialogFooter className="p-4 bg-zinc-900 border-t border-zinc-800 flex-col sm:flex-row gap-3 items-center shrink-0">
               <div className="flex-1 text-sm text-zinc-400 text-center sm:text-left">
                 {date && time ? (
                   <>
@@ -419,7 +436,7 @@ function VenueCard({ venue }: { venue: any }) {
                 {processing ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : (
-                  "Confirm & Pay"
+                  "Request Booking" // <--- Updated Text
                 )}
               </Button>
             </DialogFooter>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Trophy, Shield, Zap, Smartphone } from "lucide-react";
+import { Trophy, Shield, Zap, Apple } from "lucide-react"; // Replaced Smartphone/ArrowRight
 
 export default function MarketingPage() {
   return (
@@ -30,11 +30,12 @@ export default function MarketingPage() {
         </p>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 pt-8 w-full justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 pt-8 w-full justify-center items-center">
           {/* 1. GET STARTED (Sign Up) */}
           <Link href="/register">
-            <Button className="h-14 px-10 text-lg font-bold bg-lime-400 text-black hover:bg-lime-500 rounded-full transition-transform hover:scale-105">
-              Get Started <ArrowRight className="ml-2 w-5 h-5" />
+            <Button className="h-14 px-8 text-lg font-bold bg-lime-400 text-black hover:bg-lime-500 rounded-full transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(132,204,22,0.5)] flex items-center gap-2">
+              <Zap className="w-5 h-5 fill-current" />
+              GET STARTED
             </Button>
           </Link>
 
@@ -42,9 +43,10 @@ export default function MarketingPage() {
           <Link href="https://apps.apple.com" target="_blank">
             <Button
               variant="outline"
-              className="h-14 px-10 text-lg font-bold border-zinc-700 text-white hover:bg-zinc-800 hover:text-white rounded-full"
+              className="h-14 px-8 text-lg font-bold border-zinc-700 bg-zinc-900/50 text-white hover:bg-white hover:text-black hover:border-white rounded-full transition-all flex items-center gap-2"
             >
-              <Smartphone className="mr-2 w-5 h-5" /> Download for iOS
+              <Apple className="w-5 h-5 mb-0.5" />
+              Download for iOS
             </Button>
           </Link>
         </div>
