@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; // <--- Import Router
-import { collection, getDocs, addDoc } from "firebase/firestore"; // <--- Import addDoc
-import { db, auth } from "@/lib/firebase"; // <--- Import Auth
-import { MapPin, Loader2, Calendar as CalendarIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { collection, getDocs } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
+import { MapPin, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -27,66 +27,83 @@ interface Venue {
   pricePerHour: number;
 }
 
+const TIME_SLOTS = [
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+  "20:00",
+  "21:00",
+  "22:00",
+];
+
 export default function BookVenuePage() {
   const router = useRouter();
   const [venues, setVenues] = useState<Venue[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     new Date(),
   );
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
-  const [isBooking, setIsBooking] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Fetch Logic (Reused)
   useEffect(() => {
     const fetchVenues = async () => {
-      try {
-        const snap = await getDocs(collection(db, "venues"));
-        setVenues(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Venue));
-      } catch (e) {
-        console.error(e);
-      }
+      const snap = await getDocs(collection(db, "venues"));
+      setVenues(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Venue));
     };
     fetchVenues();
   }, []);
 
-  // --- THE REAL BOOKING LOGIC ---
-  const handleBook = async () => {
-    if (!selectedVenue || !selectedDate || !auth.currentUser) return;
-    setIsBooking(true);
+  const handleStripeCheckout = async () => {
+    if (!selectedVenue || !selectedDate || !selectedTime || !auth.currentUser)
+      return;
+    setIsProcessing(true);
 
     try {
-      await addDoc(collection(db, "bookings"), {
-        venueId: selectedVenue.id,
-        venueName: selectedVenue.name,
-        venueAddress: selectedVenue.address,
-        date: selectedDate, // Firestore handles JS Date objects
-        userId: auth.currentUser.uid,
-        status: "confirmed",
-        createdAt: new Date(),
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "booking",
+          userId: auth.currentUser.uid,
+          userEmail: auth.currentUser.email,
+          data: {
+            venueId: selectedVenue.id,
+            venueName: selectedVenue.name,
+            venuePrice: selectedVenue.pricePerHour || 50,
+            date: selectedDate.toDateString(),
+            time: selectedTime,
+          },
+        }),
       });
 
-      // Redirect to dashboard to see the new booking
-      router.push("/dashboard");
+      const { url } = await response.json();
+      if (url) window.location.href = url; // Redirect to Stripe
     } catch (error) {
-      console.error("Booking failed:", error);
-      alert("Booking failed. Please try again.");
-    } finally {
-      setIsBooking(false);
+      console.error("Checkout failed:", error);
+      alert("Payment initialization failed.");
+      setIsProcessing(false);
     }
   };
 
   return (
     <div className="max-w-6xl mx-auto p-8 text-white">
       <h1 className="text-3xl font-black italic mb-2">BOOK A PITCH</h1>
-      <p className="text-zinc-400 mb-8">
-        Select a venue and time to reserve your spot.
-      </p>
+      <p className="text-zinc-400 mb-8">Select a venue, date, and time.</p>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {venues.map((venue) => (
           <Card
             key={venue.id}
-            className="bg-zinc-900 border-zinc-800 hover:border-lime-400/50 transition group"
+            className="bg-zinc-900 border-zinc-800 hover:border-lime-400/50 transition"
           >
             <div className="h-40 bg-zinc-800 flex items-center justify-center relative">
               <span className="font-black text-4xl text-zinc-700 italic opacity-50 uppercase">
@@ -109,45 +126,75 @@ export default function BookVenuePage() {
                     className="w-full bg-zinc-950 border border-zinc-800 hover:bg-lime-400 hover:text-black font-bold"
                     onClick={() => setSelectedVenue(venue)}
                   >
-                    Select Time
+                    Book Now
                   </Button>
                 </DialogTrigger>
-
-                <DialogContent className="bg-zinc-900 border-zinc-800 text-white sm:max-w-[425px]">
+                <DialogContent className="bg-zinc-900 border-zinc-800 text-white sm:max-w-[500px]">
                   <DialogHeader>
-                    <DialogTitle>Confirm Booking</DialogTitle>
+                    <DialogTitle>Select Date & Time</DialogTitle>
                     <DialogDescription className="text-zinc-400">
-                      You are booking{" "}
+                      Booking{" "}
                       <span className="text-white font-bold">{venue.name}</span>
-                      .
                     </DialogDescription>
                   </DialogHeader>
 
-                  <div className="py-4 flex flex-col items-center gap-4">
+                  <div className="grid md:grid-cols-2 gap-4 py-4">
                     <Calendar
                       mode="single"
                       selected={selectedDate}
                       onSelect={setSelectedDate}
                       className="rounded-md border border-zinc-800 bg-zinc-950"
+                      disabled={(date) =>
+                        date < new Date(new Date().setHours(0, 0, 0, 0))
+                      }
                     />
-                    <div className="text-sm text-zinc-400">
-                      Selected:{" "}
-                      <span className="text-lime-400 font-bold">
-                        {selectedDate?.toDateString()}
-                      </span>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-zinc-500 uppercase">
+                        Available Slots
+                      </label>
+                      <div className="grid grid-cols-2 gap-2 h-[280px] overflow-y-auto pr-2">
+                        {TIME_SLOTS.map((time) => (
+                          <Button
+                            key={time}
+                            variant={
+                              selectedTime === time ? "default" : "outline"
+                            }
+                            className={`text-xs ${selectedTime === time ? "bg-lime-400 text-black hover:bg-lime-500" : "border-zinc-700 text-zinc-300 hover:bg-zinc-800"}`}
+                            onClick={() => setSelectedTime(time)}
+                          >
+                            {time}
+                            {selectedTime === time && (
+                              <Check className="w-3 h-3 ml-1" />
+                            )}
+                          </Button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  <DialogFooter>
+                  <DialogFooter className="flex-col gap-2 sm:flex-row">
+                    <div className="flex-1 text-sm text-zinc-400 flex items-center">
+                      {selectedDate && selectedTime ? (
+                        <span>
+                          Total:{" "}
+                          <span className="text-white font-bold">
+                            ${venue.pricePerHour || 50}
+                          </span>
+                        </span>
+                      ) : (
+                        "Select date & time"
+                      )}
+                    </div>
                     <Button
-                      onClick={handleBook}
-                      disabled={isBooking}
-                      className="w-full bg-lime-400 text-black font-bold hover:bg-lime-500"
+                      onClick={handleStripeCheckout}
+                      disabled={isProcessing || !selectedTime || !selectedDate}
+                      className="bg-lime-400 text-black font-bold hover:bg-lime-500"
                     >
-                      {isBooking && (
+                      {isProcessing && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
-                      Confirm & Pay
+                      Pay with Stripe
                     </Button>
                   </DialogFooter>
                 </DialogContent>

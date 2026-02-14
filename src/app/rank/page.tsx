@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Shield, Trophy } from "lucide-react";
+import { Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SportType } from "@/lib/types"; // <--- IMPORT
 
 interface RankedSquad {
   id: string;
@@ -15,29 +17,39 @@ interface RankedSquad {
 }
 
 export default function PublicRankPage() {
-  const [squads, setSquads] = useState<RankedSquad[]>([]);
+  const [allSquads, setAllSquads] = useState<RankedSquad[]>([]);
+  const [filteredSquads, setFilteredSquads] = useState<RankedSquad[]>([]);
+  const [sportFilter, setSportFilter] = useState("ALL");
 
   useEffect(() => {
     const fetchRanks = async () => {
       try {
-        // Fetch top 50 squads by wins
         const q = query(
           collection(db, "squads"),
           orderBy("wins", "desc"),
           limit(50),
         );
         const snapshot = await getDocs(q);
-        setSquads(
-          snapshot.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() }) as RankedSquad,
-          ),
+        const data = snapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() }) as RankedSquad,
         );
+        setAllSquads(data);
+        setFilteredSquads(data);
       } catch (err) {
         console.error("Failed to load rankings", err);
       }
     };
     fetchRanks();
   }, []);
+
+  // Filter Logic
+  useEffect(() => {
+    if (sportFilter === "ALL") {
+      setFilteredSquads(allSquads);
+    } else {
+      setFilteredSquads(allSquads.filter((s) => s.sport === sportFilter));
+    }
+  }, [sportFilter, allSquads]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
@@ -51,6 +63,35 @@ export default function PublicRankPage() {
           </p>
         </div>
 
+        {/* Dynamic Filter Tabs */}
+        <div className="flex justify-center mb-8 overflow-x-auto">
+          <Tabs
+            defaultValue="ALL"
+            onValueChange={setSportFilter}
+            className="w-full max-w-3xl"
+          >
+            <TabsList className="bg-zinc-900 border border-zinc-800 h-auto flex-wrap justify-center p-2 gap-2">
+              <TabsTrigger
+                value="ALL"
+                className="font-bold data-[state=active]:bg-yellow-400 data-[state=active]:text-black"
+              >
+                ALL
+              </TabsTrigger>
+
+              {/* Map through SportType enum */}
+              {Object.values(SportType).map((sport) => (
+                <TabsTrigger
+                  key={sport}
+                  value={sport}
+                  className="font-bold data-[state=active]:bg-yellow-400 data-[state=active]:text-black"
+                >
+                  {sport.toUpperCase()}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+
         <div className="space-y-4">
           <div className="grid grid-cols-12 gap-4 px-6 py-2 text-sm font-bold text-zinc-500 uppercase tracking-wider">
             <div className="col-span-1">Rank</div>
@@ -59,16 +100,15 @@ export default function PublicRankPage() {
             <div className="col-span-2 text-right">Win %</div>
           </div>
 
-          {squads.length === 0 ? (
-            <div className="text-center py-10 text-zinc-600">
-              No squads ranked yet.
+          {filteredSquads.length === 0 ? (
+            <div className="text-center py-10 text-zinc-600 bg-zinc-900/50 rounded-xl border border-zinc-800">
+              No squads found for this filter.
             </div>
           ) : (
-            squads.map((squad, index) => {
+            filteredSquads.map((squad, index) => {
               const total = squad.wins + squad.losses;
               const pct =
                 total > 0 ? Math.round((squad.wins / total) * 100) : 0;
-
               return (
                 <div
                   key={squad.id}
